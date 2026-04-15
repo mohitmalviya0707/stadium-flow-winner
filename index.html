@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Stadium - Flow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; margin: 0; padding: 20px; background: #1a1a2e; color: white; }
+        .container { max-width: 600px; margin: auto; }
+        .card { background: #16213e; padding: 20px; margin: 10px 0; border-radius: 15px; }
+        button { background: #e94560; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-size: 16px; margin: 5px 0; }
+        .crowd-bar { background: #0f3460; height: 30px; border-radius: 15px; overflow: hidden; }
+        .crowd-fill { background: #e94560; height: 100%; width: 0%; transition: width 0.5s; }
+        .green { color: #4caf50; }
+        .red { color: #e94560; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏟️ Stadium Flow</h1>
+        <div class="card">
+            <h3>📍 Your Location: Section 204</h3>
+            <div class="crowd-bar"><div class="crowd-fill" id="crowdFill"></div></div>
+            <p id="crowdText">Loading crowd data...</p>
+        </div>
+        
+        <div class="card">
+            <h3>🚻 Best Time for Toilet</h3>
+            <p id="bestTime">AI Predicting...</p>
+            <button onclick="getPrediction()">🔄 Refresh Prediction</button>
+        </div>
+
+        <div class="card">
+            <h3>🎮 Your Score: <span id="score">0</span></h3>
+            <button onclick="checkin()">✅ Check-in at Gate (100 points)</button>
+        </div>
+
+        <div class="card">
+            <h3>🆘 Emergency</h3>
+            <button onclick="emergency()" style="background: #ff0000;">🚑 Medical Help Needed</button>
+        </div>
+
+        <div class="card" id="accessibleMode">
+            <h3>♿ Accessibility</h3>
+            <button onclick="voiceGuide()">🔊 Voice Navigation</button>
+            <button onclick="colorblindMode()">🎨 Colorblind Mode</button>
+        </div>
+    </div>
+
+    <script>
+        // Fake real-time crowd data (demo mode)
+        let crowdDensity = 45;
+        
+        setInterval(() => {
+            // Simulate changing crowd
+            crowdDensity = Math.floor(Math.random() * 100);
+            document.getElementById('crowdFill').style.width = crowdDensity + '%';
+            let text = crowdDensity > 70 ? '🔴 Very Crowded! Avoid' : crowdDensity > 40 ? '🟡 Moderate Traffic' : '🟢 Clear Path';
+            document.getElementById('crowdText').innerHTML = `Crowd: ${crowdDensity}% - ${text}`;
+        }, 3000);
+
+        function getPrediction() {
+            let predictions = [
+                "⏰ Best time: 12:15 PM (Wait: 2 min)",
+                "⏰ Best time: 3:45 PM (Wait: 1 min)",
+                "⏰ Best time: Halftime - 30 sec wait",
+                "⏰ Currently busy, wait 8 min"
+            ];
+            let random = predictions[Math.floor(Math.random() * predictions.length)];
+            document.getElementById('bestTime').innerHTML = random + " 🤖 AI Prediction";
+        }
+
+        let score = 0;
+        function checkin() {
+            score += 100;
+            document.getElementById('score').innerHTML = score;
+            alert('🎉 +100 points! Get 500 for free Pepsi!');
+            if(score >= 500) alert('🏆 YOU WIN A FREE PEPSI! Show at counter!');
+        }
+
+        function emergency() {
+            alert('🚨 HELP EN ROUTE! Staff dispatched to your location (via geofencing)');
+            // Real implementation would call Cloud Run endpoint
+        }
+
+        function voiceGuide() {
+            let msg = new SpeechSynthesisUtterance("Turn left at the next ramp. Restroom is 50 meters ahead.");
+            window.speechSynthesis.speak(msg);
+        }
+
+        function colorblindMode() {
+            document.body.style.filter = "grayscale(100%) contrast(150%)";
+            alert("♿ Colorblind mode activated");
+        }
+
+        // Auto prediction on load
+        getPrediction();
+
+        // PWA Support
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>
