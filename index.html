@@ -1,104 +1,518 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Smart Stadium - Flow</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: Arial; margin: 0; padding: 20px; background: #1a1a2e; color: white; }
-        .container { max-width: 600px; margin: auto; }
-        .card { background: #16213e; padding: 20px; margin: 10px 0; border-radius: 15px; }
-        button { background: #e94560; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-size: 16px; margin: 5px 0; }
-        .crowd-bar { background: #0f3460; height: 30px; border-radius: 15px; overflow: hidden; }
-        .crowd-fill { background: #e94560; height: 100%; width: 0%; transition: width 0.5s; }
-        .green { color: #4caf50; }
-        .red { color: #e94560; }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SmartVenue - Intelligent Stadium Experience</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; transition: background 0.3s, color 0.3s; }
+  body.dark-mode { background: #0f172a; color: #e2e8f0; }
+  body.dark-mode .card { background: #1e293b; }
+  body.dark-mode .nav-tab { background: #0f172a; color: #94a3b8; }
+  body.dark-mode .nav-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+  body.dark-mode .metric { background: #1e293b; }
+  body.dark-mode .route-card { background: #1e293b; border-color: #334155; }
+  body.dark-mode .search-bar input { background: #1e293b; border-color: #334155; color: white; }
+  body.colorblind { filter: grayscale(100%) contrast(135%); }
+  
+  .app-header { background: linear-gradient(135deg, #1a3a5c 0%, #0d2137 100%); color: white; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .app-header h1 { font-size: 18px; font-weight: 600; }
+  .live-dot { display: inline-block; width: 8px; height: 8px; background: #e74c3c; border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .live-tag { font-size: 11px; background: #e74c3c; padding: 3px 8px; border-radius: 12px; font-weight: 600; letter-spacing: 0.5px; }
+  .header-right { text-align: right; }
+  .live-clock { font-size: 12px; font-weight: 600; }
+  .countdown { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+  
+  .nav-tabs { display: flex; background: white; border-bottom: 1px solid #e0e0e0; overflow-x: auto; position: sticky; top: 54px; z-index: 99; }
+  body.dark-mode .nav-tabs { background: #0f172a; border-bottom-color: #334155; }
+  .nav-tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: #666; border: none; background: none; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .nav-tab:hover { color: #1a3a5c; background: #f5f8ff; }
+  .nav-tab.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
+  body.dark-mode .nav-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+  
+  .content { padding: 16px; max-width: 480px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .card { background: white; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: all 0.3s; }
+  .card-title { font-size: 13px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  body.dark-mode .card-title { color: #94a3b8; }
+  
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric { background: white; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .metric-num { font-size: 24px; font-weight: 700; }
+  .metric-label { font-size: 11px; color: #888; margin-top: 3px; }
+  
+  .heatmap-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .zone { height: 50px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; cursor: pointer; transition: transform 0.15s; border: 2px solid transparent; }
+  .zone:hover { transform: scale(1.05); }
+  .zone.selected { border-color: #1a3a5c; }
+  .zone-low { background: #d4edda; color: #155724; }
+  .zone-med { background: #fff3cd; color: #856404; }
+  .zone-high { background: #f8d7da; color: #721c24; }
+  .zone-full { background: #e74c3c; color: white; }
+  .zone-pct { font-size: 9px; font-weight: 400; margin-top: 2px; }
+  
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+  .leg-box { width: 12px; height: 12px; border-radius: 3px; }
+  .zone-popup { background: #1a3a5c; color: white; border-radius: 10px; padding: 12px; margin-top: 10px; font-size: 13px; display: none; }
+  
+  .wait-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #f0f0f0; }
+  .wait-row:last-child { border-bottom: none; }
+  .wait-name { font-size: 14px; font-weight: 500; }
+  .wait-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #d4edda; color: #155724; }
+  .badge-yellow { background: #fff3cd; color: #856404; }
+  .badge-red { background: #f8d7da; color: #721c24; }
+  
+  .alert-card { display: flex; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
+  .alert-info { background: #dbeafe; border-left: 4px solid #3b82f6; }
+  .alert-warn { background: #fef3c7; border-left: 4px solid #f59e0b; }
+  .alert-success { background: #d1fae5; border-left: 4px solid #10b981; }
+  .alert-danger { background: #fee2e2; border-left: 4px solid #ef4444; }
+  .alert-ico { font-size: 18px; }
+  .alert-msg { font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .alert-time { font-size: 11px; color: #888; margin-top: 3px; }
+  
+  .route-card { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 12px; border: 2px solid #e0e0e0; margin-bottom: 10px; cursor: pointer; background: white; transition: all 0.2s; }
+  .route-card.recommended { border-color: #1a3a5c; background: #f0f5ff; }
+  .route-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .route-blue { background: #dbeafe; }
+  .route-gray { background: #f3f4f6; }
+  .route-info { flex: 1; }
+  .route-name { font-size: 14px; font-weight: 600; }
+  .route-detail { font-size: 12px; color: #888; margin-top: 2px; }
+  .route-time { font-size: 15px; font-weight: 700; color: #1a3a5c; }
+  .recommended-tag { font-size: 10px; background: #1a3a5c; color: white; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+  
+  .seat-area { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin: 12px 0; }
+  .seat { width: 100%; aspect-ratio: 1; border-radius: 4px; border: none; cursor: pointer; transition: transform 0.1s; }
+  .seat:hover { transform: scale(1.1); }
+  .seat-avail { background: #d4edda; }
+  .seat-taken { background: #dee2e6; cursor: not-allowed; }
+  .seat-mine { background: #1a3a5c; }
+  .seat-vip { background: #c5b8f5; }
+  .seat-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .s-leg { font-size: 11px; color: #555; display: flex; align-items: center; gap: 5px; }
+  .s-dot { width: 12px; height: 12px; border-radius: 3px; }
+  
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .search-bar input { flex: 1; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
+  .search-bar input:focus { border-color: #1a3a5c; }
+  .search-bar button { padding: 10px 18px; background: #1a3a5c; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  
+  .progress-bar { background: #e9ecef; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s; }
+  
+  .footer-note { text-align: center; font-size: 11px; color: #aaa; padding: 20px 0 10px; }
+  
+  .emergency-card { background: #fee2e2; border: 2px solid #ef4444; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .emergency-btn { background: #ef4444; color: white; padding: 14px; width: 100%; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+  .emergency-btn:hover { transform: scale(1.02); background: #dc2626; }
+  
+  .points-card { background: linear-gradient(135deg, #1a3a5c, #0d2137); color: white; border-radius: 14px; padding: 16px; margin-bottom: 14px; text-align: center; }
+  .points-display { font-size: 48px; font-weight: bold; margin: 10px 0; }
+  .points-btn { background: #e94560; color: white; padding: 10px 16px; border: none; border-radius: 8px; margin: 5px; cursor: pointer; font-weight: 600; }
+  .points-btn-green { background: #10b981; }
+  
+  .action-buttons { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .action-btn { flex: 1; background: #6b7280; color: white; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .action-btn-primary { background: #1a3a5c; }
+  
+  .toast-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a3a5c; color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 1000; animation: slideUp 0.3s ease; display: none; }
+  @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏟️ Stadium Flow</h1>
-        <div class="card">
-            <h3>📍 Your Location: Section 204</h3>
-            <div class="crowd-bar"><div class="crowd-fill" id="crowdFill"></div></div>
-            <p id="crowdText">Loading crowd data...</p>
-        </div>
-        
-        <div class="card">
-            <h3>🚻 Best Time for Toilet</h3>
-            <p id="bestTime">AI Predicting...</p>
-            <button onclick="getPrediction()">🔄 Refresh Prediction</button>
-        </div>
 
-        <div class="card">
-            <h3>🎮 Your Score: <span id="score">0</span></h3>
-            <button onclick="checkin()">✅ Check-in at Gate (100 points)</button>
-        </div>
+<div class="app-header">
+  <div>
+    <h1>🏟️ SmartVenue</h1>
+    <div style="font-size:11px;opacity:0.75;margin-top:2px">DY Patil Stadium · 55,000 capacity</div>
+  </div>
+  <div class="header-right">
+    <div class="live-clock" id="liveClock">--:--:--</div>
+    <div class="countdown">⚽ Match: <span id="countdown">--</span></div>
+    <div><span class="live-dot"></span><span class="live-tag">LIVE</span></div>
+  </div>
+</div>
 
-        <div class="card">
-            <h3>🆘 Emergency</h3>
-            <button onclick="emergency()" style="background: #ff0000;">🚑 Medical Help Needed</button>
-        </div>
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('crowd',this)">🗺 Crowd</button>
+  <button class="nav-tab" onclick="switchTab('wait',this)">⏱ Wait Times</button>
+  <button class="nav-tab" onclick="switchTab('alerts',this)">🔔 Alerts</button>
+  <button class="nav-tab" onclick="switchTab('navigate',this)">🧭 Navigate</button>
+  <button class="nav-tab" onclick="switchTab('seat',this)">💺 My Seat</button>
+</div>
 
-        <div class="card" id="accessibleMode">
-            <h3>♿ Accessibility</h3>
-            <button onclick="voiceGuide()">🔊 Voice Navigation</button>
-            <button onclick="colorblindMode()">🎨 Colorblind Mode</button>
-        </div>
+<div class="content">
+
+  <!-- CROWD MAP -->
+  <div class="section active" id="crowd">
+    <div class="metrics">
+      <div class="metric"><div class="metric-num" style="color:#1a3a5c">48k</div><div class="metric-label">Attendees</div></div>
+      <div class="metric"><div class="metric-num" style="color:#f59e0b">87%</div><div class="metric-label">Capacity</div></div>
+      <div class="metric"><div class="metric-num" style="color:#ef4444">4</div><div class="metric-label">Hot Zones</div></div>
     </div>
 
-    <script>
-        // Fake real-time crowd data (demo mode)
-        let crowdDensity = 45;
-        
-        setInterval(() => {
-            // Simulate changing crowd
-            crowdDensity = Math.floor(Math.random() * 100);
-            document.getElementById('crowdFill').style.width = crowdDensity + '%';
-            let text = crowdDensity > 70 ? '🔴 Very Crowded! Avoid' : crowdDensity > 40 ? '🟡 Moderate Traffic' : '🟢 Clear Path';
-            document.getElementById('crowdText').innerHTML = `Crowd: ${crowdDensity}% - ${text}`;
-        }, 3000);
+    <div class="card">
+      <div class="card-title">Live Crowd Density Map</div>
+      <div class="heatmap-grid" id="heatmap"></div>
+      <div class="legend">
+        <div class="leg"><div class="leg-box" style="background:#d4edda"></div>Low (0-40%)</div>
+        <div class="leg"><div class="leg-box" style="background:#fff3cd"></div>Medium (40-65%)</div>
+        <div class="leg"><div class="leg-box" style="background:#f8d7da"></div>High (65-85%)</div>
+        <div class="leg"><div class="leg-box" style="background:#e74c3c"></div>Full (85%+)</div>
+      </div>
+      <div class="zone-popup" id="zone-popup"></div>
+    </div>
 
-        function getPrediction() {
-            let predictions = [
-                "⏰ Best time: 12:15 PM (Wait: 2 min)",
-                "⏰ Best time: 3:45 PM (Wait: 1 min)",
-                "⏰ Best time: Halftime - 30 sec wait",
-                "⏰ Currently busy, wait 8 min"
-            ];
-            let random = predictions[Math.floor(Math.random() * predictions.length)];
-            document.getElementById('bestTime').innerHTML = random + " 🤖 AI Prediction";
-        }
+    <div class="card">
+      <div class="card-title">Capacity Overview</div>
+      <div id="capacity-bars"></div>
+    </div>
+  </div>
 
-        let score = 0;
-        function checkin() {
-            score += 100;
-            document.getElementById('score').innerHTML = score;
-            alert('🎉 +100 points! Get 500 for free Pepsi!');
-            if(score >= 500) alert('🏆 YOU WIN A FREE PEPSI! Show at counter!');
-        }
+  <!-- WAIT TIMES -->
+  <div class="section" id="wait">
+    <div class="card">
+      <div class="card-title">🚪 Entry Gates</div>
+      <div class="wait-row"><div><div class="wait-name">Gate 1 — North</div><div class="wait-sub">General · 8 lanes open</div></div><span class="badge badge-green">2 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Gate 2 — East</div><div class="wait-sub">General · 6 lanes open</div></div><span class="badge badge-red">19 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Gate 3 — South</div><div class="wait-sub">VIP · 4 lanes open</div></div><span class="badge badge-green">1 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Gate 4 — West</div><div class="wait-sub">General · 5 lanes open</div></div><span class="badge badge-yellow">9 min</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🍔 Food & Beverages</div>
+      <div class="wait-row"><div><div class="wait-name">Main Food Court — L1</div><div class="wait-sub">14 stalls active</div></div><span class="badge badge-red">24 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Snack Corner — Sec B</div><div class="wait-sub">5 stalls active</div></div><span class="badge badge-yellow">10 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">East Wing Canteen</div><div class="wait-sub">8 stalls active</div></div><span class="badge badge-yellow">7 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">VIP Lounge Bar</div><div class="wait-sub">VIP only</div></div><span class="badge badge-green">0 min</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚻 Washrooms</div>
+      <div class="wait-row"><div><div class="wait-name">Block 1 — Near Gate 1</div><div class="wait-sub">12 units · Clean</div></div><span class="badge badge-green">2 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Block 2 — Near Gate 2</div><div class="wait-sub">10 units</div></div><span class="badge badge-red">15 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">Block 3 — Level 2</div><div class="wait-sub">8 units</div></div><span class="badge badge-yellow">5 min</span></div>
+    </div>
+  </div>
 
-        function emergency() {
-            alert('🚨 HELP EN ROUTE! Staff dispatched to your location (via geofencing)');
-            // Real implementation would call Cloud Run endpoint
-        }
+  <!-- ALERTS -->
+  <div class="section" id="alerts">
+    <!-- EMERGENCY SOS BUTTON -->
+    <div class="emergency-card">
+      <div class="card-title" style="color:#721c24; margin-bottom:8px;">🆘 EMERGENCY ASSISTANCE</div>
+      <button class="emergency-btn" onclick="emergencySOS()">🚑 I NEED MEDICAL HELP</button>
+      <p style="font-size:11px; margin-top:8px; color:#721c24;">📍 Your location will be shared with stadium security</p>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">🔔 Real-Time Announcements</div>
+      <div class="alert-card alert-danger">
+        <div class="alert-ico">🚨</div>
+        <div><div class="alert-msg">Gate 2 extremely congested. All attendees please use Gate 1 or Gate 4.</div><div class="alert-time">Just now</div></div>
+      </div>
+      <div class="alert-card alert-warn">
+        <div class="alert-ico">⚠️</div>
+        <div><div class="alert-msg">Match kicks off in 10 minutes. Please take your seats now.</div><div class="alert-time">3 min ago</div></div>
+      </div>
+      <div class="alert-card alert-success">
+        <div class="alert-ico">✅</div>
+        <div><div class="alert-msg">Food Court Level 2 now open — shorter wait times available.</div><div class="alert-time">6 min ago</div></div>
+      </div>
+      <div class="alert-card alert-info">
+        <div class="alert-ico">ℹ️</div>
+        <div><div class="alert-msg">Parking Lot A & B still available. Lot C is now full.</div><div class="alert-time">11 min ago</div></div>
+      </div>
+      <div class="alert-card alert-warn">
+        <div class="alert-ico">🚑</div>
+        <div><div class="alert-msg">Medical assistance deployed to Section D. Please keep aisles clear.</div><div class="alert-time">18 min ago</div></div>
+      </div>
+    </div>
+  </div>
 
-        function voiceGuide() {
-            let msg = new SpeechSynthesisUtterance("Turn left at the next ramp. Restroom is 50 meters ahead.");
-            window.speechSynthesis.speak(msg);
-        }
+  <!-- NAVIGATE -->
+  <div class="section" id="navigate">
+    <div class="card">
+      <div class="card-title">🧭 Best Routes to Your Seat (B-14)</div>
+      <div class="route-card recommended">
+        <div class="route-icon route-blue">🚶</div>
+        <div class="route-info">
+          <div class="route-name">Gate 1 + North Corridor <span class="recommended-tag">BEST</span></div>
+          <div class="route-detail">Least crowded · 420m · Well lit</div>
+        </div>
+        <div class="route-time">4 min</div>
+      </div>
+      <div class="route-card">
+        <div class="route-icon route-gray">🚶</div>
+        <div class="route-info">
+          <div class="route-name">Main Concourse Route</div>
+          <div class="route-detail">Moderate crowd · 380m</div>
+        </div>
+        <div class="route-time">8 min</div>
+      </div>
+      <div class="route-card">
+        <div class="route-icon route-gray">🚶</div>
+        <div class="route-info">
+          <div class="route-name">South Tunnel (Avoid)</div>
+          <div class="route-detail">Very crowded · 310m</div>
+        </div>
+        <div class="route-time">13 min</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">📍 Nearby Services</div>
+      <div class="wait-row"><div><div class="wait-name">🚻 Nearest Washroom</div><div class="wait-sub">Block 1 — 80m away</div></div><span class="badge badge-green">2 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">🍔 Nearest Food</div><div class="wait-sub">Snack Corner B — 120m</div></div><span class="badge badge-yellow">10 min</span></div>
+      <div class="wait-row"><div><div class="wait-name">🚑 First Aid</div><div class="wait-sub">Gate 1 Station — 95m</div></div><span class="badge badge-green">Open</span></div>
+      <div class="wait-row"><div><div class="wait-name">ℹ️ Help Desk</div><div class="wait-sub">Main Lobby — 200m</div></div><span class="badge badge-green">Open</span></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">🎤 Accessibility Features</div>
+      <div class="action-buttons">
+        <button class="action-btn action-btn-primary" onclick="voiceGuide()">🔊 Voice Navigation</button>
+        <button class="action-btn" onclick="toggleColorblindMode()">🎨 Colorblind Mode</button>
+        <button class="action-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+      </div>
+    </div>
+  </div>
 
-        function colorblindMode() {
-            document.body.style.filter = "grayscale(100%) contrast(150%)";
-            alert("♿ Colorblind mode activated");
-        }
+  <!-- MY SEAT -->
+  <div class="section" id="seat">
+    <!-- POINTS / GAMIFICATION CARD -->
+    <div class="points-card">
+      <div class="card-title" style="color:#ccc;">🏆 YOUR REWARD POINTS</div>
+      <div class="points-display" id="scoreDisplay">0</div>
+      <button class="points-btn" onclick="earnPoints()">✅ Check-in at Gate (+100)</button>
+      <button class="points-btn points-btn-green" onclick="claimReward()">🎁 Claim Free Pepsi (500 pts)</button>
+      <p style="font-size:10px; opacity:0.7; margin-top:8px;">Check-in at different gates to earn more points!</p>
+    </div>
+    
+    <div class="search-bar">
+      <input type="text" id="seatInput" placeholder="Enter seat (e.g. B-14)" />
+      <button onclick="findSeat()">Find</button>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">Section B — Rows 10 to 17</div>
+      <div class="seat-area" id="seatGrid"></div>
+      <div class="seat-legend">
+        <div class="s-leg"><div class="s-dot" style="background:#d4edda"></div>Available</div>
+        <div class="s-leg"><div class="s-dot" style="background:#dee2e6"></div>Taken</div>
+        <div class="s-leg"><div class="s-dot" style="background:#1a3a5c"></div>Your Seat</div>
+        <div class="s-leg"><div class="s-dot" style="background:#c5b8f5"></div>VIP</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">🎟 Your Booking</div>
+      <div class="wait-row"><div class="wait-name">Seat</div><b>B-14, Row 12</b></div>
+      <div class="wait-row"><div class="wait-name">Section</div><span>North Stand</span></div>
+      <div class="wait-row"><div class="wait-name">Entry Gate</div><span>Gate 1 (4 min walk)</span></div>
+      <div class="wait-row" style="border:none"><div class="wait-name">View Quality</div><span class="badge badge-green">Excellent</span></div>
+    </div>
+  </div>
 
-        // Auto prediction on load
-        getPrediction();
+  <div class="footer-note">SmartVenue v2.0 · Real-time updates · Emergency Ready · Accessibility First · © 2026</div>
+</div>
 
-        // PWA Support
-        if('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
-        }
-    </script>
+<div id="toastMsg" class="toast-notification"></div>
+
+<script>
+// --- TOAST NOTIFICATION ---
+function showToast(message, isError = false) {
+  const toast = document.getElementById('toastMsg');
+  toast.style.backgroundColor = isError ? '#ef4444' : '#1a3a5c';
+  toast.innerHTML = message;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// --- EMERGENCY SOS ---
+function emergencySOS() {
+  if(confirm("⚠️ MEDICAL EMERGENCY? Staff will be dispatched to your location immediately.\n\nPress OK to send alert.")) {
+    showToast("🚨 HELP EN ROUTE! Security & Medical team notified. Stay in place.", false);
+    // Real implementation would call API endpoint
+  }
+}
+
+// --- VOICE NAVIGATION (Accessibility) ---
+function voiceGuide() {
+  if('speechSynthesis' in window) {
+    let msg = new SpeechSynthesisUtterance("Turn right at Gate 1. Walk straight 50 meters. Your seat B-14 is on the left. Restrooms are 30 meters ahead.");
+    msg.rate = 0.9;
+    window.speechSynthesis.speak(msg);
+    showToast("🔊 Voice navigation activated", false);
+  } else {
+    showToast("❌ Voice navigation not supported on this device", true);
+  }
+}
+
+// --- COLORBLIND MODE (Accessibility) ---
+let colorblindActive = false;
+function toggleColorblindMode() {
+  colorblindActive = !colorblindActive;
+  if(colorblindActive) {
+    document.body.classList.add('colorblind');
+    showToast("♿ Colorblind mode ON - High contrast enabled", false);
+  } else {
+    document.body.classList.remove('colorblind');
+    showToast("Colorblind mode OFF", false);
+  }
+}
+
+// --- DARK MODE ---
+let darkModeActive = false;
+function toggleDarkMode() {
+  darkModeActive = !darkModeActive;
+  if(darkModeActive) {
+    document.body.classList.add('dark-mode');
+    showToast("🌙 Dark mode activated", false);
+  } else {
+    document.body.classList.remove('dark-mode');
+    showToast("Light mode restored", false);
+  }
+}
+
+// --- GAMIFICATION POINTS SYSTEM ---
+let userScore = localStorage.getItem('stadiumScore') || 0;
+document.getElementById('scoreDisplay').innerText = userScore;
+
+function earnPoints() {
+  userScore = parseInt(userScore) + 100;
+  localStorage.setItem('stadiumScore', userScore);
+  document.getElementById('scoreDisplay').innerText = userScore;
+  showToast("🎉 +100 points earned!", false);
+  if(userScore >= 500) {
+    showToast("🏆 You can now claim FREE PEPSI! Go to Rewards section.", false);
+  }
+}
+
+function claimReward() {
+  if(userScore >= 500) {
+    showToast("🏆 CONGRATULATIONS! Show this screen at Food Court for FREE PEPSI!", false);
+    userScore -= 500;
+    localStorage.setItem('stadiumScore', userScore);
+    document.getElementById('scoreDisplay').innerText = userScore;
+  } else {
+    let needed = 500 - userScore;
+    showToast(`❌ Need ${needed} more points. Check-in at gates to earn!`, true);
+  }
+}
+
+// --- LIVE CLOCK + MATCH COUNTDOWN ---
+function updateClock() {
+  let now = new Date();
+  document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+  
+  let match = new Date();
+  match.setHours(16, 0, 0);
+  let diff = match - now;
+  if(diff > 0) {
+    let mins = Math.floor(diff / 60000);
+    let secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('countdown').innerHTML = `${mins}m ${secs}s`;
+  } else {
+    document.getElementById('countdown').innerHTML = "LIVE NOW! 🔴";
+  }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// --- CROWD MAP DATA ---
+const zones = [
+  {id:'A1',cat:'low',pct:28},{id:'A2',cat:'med',pct:52},{id:'A3',cat:'low',pct:35},{id:'A4',cat:'low',pct:22},{id:'A5',cat:'med',pct:48},
+  {id:'B1',cat:'high',pct:72},{id:'B2',cat:'full',pct:91},{id:'B3',cat:'high',pct:78},{id:'B4',cat:'med',pct:60},{id:'B5',cat:'low',pct:30},
+  {id:'C1',cat:'med',pct:55},{id:'C2',cat:'high',pct:68},{id:'C3',cat:'med',pct:58},{id:'C4',cat:'low',pct:40},{id:'C5',cat:'low',pct:25},
+  {id:'D1',cat:'low',pct:32},{id:'D2',cat:'med',pct:50},{id:'D3',cat:'full',pct:88},{id:'D4',cat:'high',pct:75},{id:'D5',cat:'med',pct:62},
+  {id:'E1',cat:'low',pct:18},{id:'E2',cat:'low',pct:28},{id:'E3',cat:'med',pct:45},{id:'E4',cat:'med',pct:53},{id:'E5',cat:'low',pct:20}
+];
+const catClass = {low:'zone-low',med:'zone-med',high:'zone-high',full:'zone-full'};
+const catMsg = {
+  low:'✅ Low crowd — Easy movement and good comfort',
+  med:'⚠️ Medium density — Some congestion expected',
+  high:'🔴 High density — Move carefully, allow extra time',
+  full:'🚫 At capacity — Entry restricted, find alternate zone'
+};
+const hmap = document.getElementById('heatmap');
+zones.forEach(z => {
+  const el = document.createElement('div');
+  el.className = 'zone ' + catClass[z.cat];
+  el.innerHTML = `<span>${z.id}</span><span class="zone-pct">${z.pct}%</span>`;
+  el.onclick = () => {
+    document.querySelectorAll('.zone').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    const p = document.getElementById('zone-popup');
+    p.style.display = 'block';
+    p.innerHTML = `<b>Zone ${z.id}</b> — ${z.pct}% capacity<br>${catMsg[z.cat]}`;
+  };
+  hmap.appendChild(el);
+});
+
+// Capacity bars
+const areas = [
+  {name:'North Stand',pct:71,color:'#3b82f6'},
+  {name:'South Stand',pct:89,color:'#ef4444'},
+  {name:'East Wing',pct:54,color:'#10b981'},
+  {name:'West Wing',pct:93,color:'#ef4444'},
+  {name:'VIP Boxes',pct:45,color:'#8b5cf6'}
+];
+const barsEl = document.getElementById('capacity-bars');
+areas.forEach(a => {
+  barsEl.innerHTML += `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+      <span>${a.name}</span><span style="font-weight:600">${a.pct}%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${a.pct}%;background:${a.color}"></div></div>
+  </div>`;
+});
+
+// --- SEAT GRID ---
+const grid = document.getElementById('seatGrid');
+for(let i = 0; i < 64; i++){
+  const btn = document.createElement('button');
+  const r = Math.random();
+  btn.className = 'seat ' + (i === 13 ? 'seat-mine' : r < 0.08 ? 'seat-vip' : r < 0.55 ? 'seat-taken' : 'seat-avail');
+  if(!btn.classList.contains('seat-taken')){
+    btn.onclick = function(){
+      document.querySelectorAll('.seat').forEach(s => { if(!s.classList.contains('seat-mine')) s.classList.remove('seat-mine'); });
+      if(!this.classList.contains('seat-taken') && !this.classList.contains('seat-vip')){
+        document.querySelectorAll('.seat.seat-avail').forEach(s => s.classList.remove('seat-mine'));
+        this.classList.add('seat-mine');
+        showToast(`✅ Seat selected! You can now book this seat.`, false);
+      }
+    };
+  }
+  grid.appendChild(btn);
+}
+
+// --- TAB SWITCHING ---
+function switchTab(id, btn){
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// --- SEAT FINDER ---
+function findSeat(){
+  const v = document.getElementById('seatInput').value.trim();
+  if(v){
+    showToast(`📍 Seat "${v}" found! North Stand, Row 12. 4 min walk from Gate 1.`, false);
+  } else {
+    showToast('❌ Please enter a seat number (e.g. B-14)', true);
+  }
+}
+
+// --- PWA Service Worker ---
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
 </body>
 </html>
